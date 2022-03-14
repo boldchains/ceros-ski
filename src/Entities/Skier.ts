@@ -4,8 +4,9 @@
  */
 
 import { IMAGE_NAMES, DIAGONAL_SPEED_REDUCER, KEYS } from "../Constants";
-import { Entity } from "./Entity";
+import { AnimationEntity } from "./AnimationEntity";
 import { Canvas } from "../Core/Canvas";
+import { Animation } from "../Core/Animation";
 import { ImageManager } from "../Core/ImageManager";
 import { intersectTwoRects, Rect } from "../Core/Utils";
 import { ObstacleManager } from "./Obstacles/ObstacleManager";
@@ -14,7 +15,7 @@ import {Obstacle} from "./Obstacles/Obstacle";
 /**
  * The skier starts running at this speed. Saved in case speed needs to be reset at any point.
  */
-const STARTING_SPEED: number = 10;
+const STARTING_SPEED: number = 5;
 
 /**
  * The different states the skier can be in.
@@ -22,9 +23,21 @@ const STARTING_SPEED: number = 10;
 
 enum STATES {
     STATE_SKIING = 'skiing',
+    STATE_JUMPING = 'jumping',
     STATE_CRASHED = 'crashed',
     STATE_DEAD = 'dead'
 };
+
+/**
+ * Sequences of images that comprise the animations for the different states of the skier.
+ */
+const IMAGES_JUMPING: IMAGE_NAMES[] = [
+    IMAGE_NAMES.SKIER_JUMP1,
+    IMAGE_NAMES.SKIER_JUMP2,
+    IMAGE_NAMES.SKIER_JUMP3,
+    IMAGE_NAMES.SKIER_JUMP4,
+    IMAGE_NAMES.SKIER_JUMP5,
+]
 
 /**
  * The different directions the skier can be facing.
@@ -46,7 +59,7 @@ const DIRECTION_IMAGES: {[key: number]: IMAGE_NAMES} = {
     [DIRECTION_RIGHT] : IMAGE_NAMES.SKIER_RIGHT
 };
 
-export class Skier extends Entity {
+export class Skier extends AnimationEntity<STATES> {
 
     /**
      * The name of the current image being displayed for the skier.
@@ -77,9 +90,20 @@ export class Skier extends Entity {
      * Init the skier.
      */
     constructor(x: number, y: number, imageManager: ImageManager, obstacleManager: ObstacleManager, canvas: Canvas) {
-        super(x, y, imageManager, canvas);
+        super(x, y, imageManager, canvas, null);
 
         this.obstacleManager = obstacleManager;
+    }
+
+    /**
+     * Create and store the animations.
+     */
+    setupAnimations() {
+        this.animations[STATES.STATE_JUMPING] = new Animation(
+            IMAGES_JUMPING,
+            false,
+            this.stopJumping.bind(this)
+        );
     }
 
     /**
@@ -93,7 +117,14 @@ export class Skier extends Entity {
      * Is the skier currently in the skiing state
      */
     isSkiing(): boolean {
-        return this.state === STATES.STATE_SKIING;
+        return this.state === STATES.STATE_SKIING || this.state === STATES.STATE_JUMPING;
+    }
+
+    /**
+     * Is the skier currently in the jumping state
+     */
+    isJumping(): boolean {
+        return this.state === STATES.STATE_JUMPING;
     }
 
     /**
@@ -101,6 +132,14 @@ export class Skier extends Entity {
      */
     isDead(): boolean {
         return this.state === STATES.STATE_DEAD;
+    }
+
+    /**
+     * Set the skier jumping state
+     */
+    setJumping() {
+        this.state = STATES.STATE_JUMPING;
+        this.setAnimationState(STATES.STATE_JUMPING);
     }
 
     /**
@@ -121,11 +160,13 @@ export class Skier extends Entity {
     /**
      * Move the skier and check to see if they've hit an obstacle. The skier only moves in the skiing state.
      */
-    update() {
+    update(gameTime: number) {
         if(this.isSkiing()) {
             this.move();
             this.checkIfHitObstacle();
         }
+
+        this.animate(gameTime);
     }
 
     /**
@@ -232,6 +273,9 @@ export class Skier extends Entity {
             case KEYS.DOWN:
                 this.turnDown();
                 break;
+            case KEYS.SPACE:
+                this.jump();
+                break;
             default:
                 handled = false;
         }
@@ -300,6 +344,17 @@ export class Skier extends Entity {
     }
 
     /**
+     * Make the skier to jump to excape a jumpable obstacle.
+     */
+    jump() {
+        if(this.isCrashed()) {
+            return;
+        }
+
+        this.setJumping();
+    }
+
+    /**
      * The skier has a bit different bounds calculating than a normal entity to make the collision with obstacles more
      * natural. We want te skier to end up in the obstacle rather than right above it when crashed, so move the bottom
      * boundary up.
@@ -327,14 +382,33 @@ export class Skier extends Entity {
             return;
         }
 
+        const hitJumpRamps = this.obstacleManager.getObstacles().find((obstacle: Obstacle): boolean => {
+            const obstacleBounds = obstacle.getBounds();
+            if(!obstacleBounds) {
+                return false;
+            }
+            
+            const isJumpRamps = obstacle.isJumpRamp();
+            return isJumpRamps && intersectTwoRects(skierBounds, obstacleBounds);
+        });
+
+        if (hitJumpRamps) {
+            this.jump();
+        }
+
         const collision = this.obstacleManager.getObstacles().find((obstacle: Obstacle): boolean => {
             const obstacleBounds = obstacle.getBounds();
             if(!obstacleBounds) {
                 return false;
             }
 
+            if (obstacle.isJumpRamp() || (this.isJumping() && obstacle.isJumpable())) {
+                return false
+            }
+
             return intersectTwoRects(skierBounds, obstacleBounds);
         });
+
 
         if(collision) {
             this.crash();
@@ -360,6 +434,14 @@ export class Skier extends Entity {
         this.speed = STARTING_SPEED;
         this.setDirection(newDirection);
     }
+
+    /**
+     * Reset the skiper state after jumping, get them moving again as normal state
+     */
+     stopJumping() {
+         this.state = STATES.STATE_SKIING;
+         this.setDirectionalImage();
+     }
 
     /**
      * Kill the skier by putting them into the "dead" state and stopping their movement.

@@ -9,7 +9,7 @@ import { iImage } from "../Interfaces/iImage";
  * Scale all images loaded by this amount
  * @type {number}
  * */
-const SCALE: number = 0.5;
+const SCALE: number = 0.8;
 
 export class ImageManager {
     loadedImages: {[key in IMAGE_NAMES]?: HTMLImageElement} = {};

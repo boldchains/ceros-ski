@@ -53,9 +53,23 @@ it better! Your solution can only gain from having a better foundation.
 
   Update this README file with your comments about your work.
   * What did you do and, more importantly, why you built it the way you did.
+    * I've added AnimationEntity for the animational characters, for example, skier & Rhino are a animational entity. That way we can make any object can be animational for the feature even the obstacles.
+    * Modified skier & rhino entity by inheriting the AnimationEntity.
+    * Added Jump ramps as an obstacle, it will not make the collision when the skier hits them, the skier will enter the jumping state instead.
+    * The skier do a flip at the least one cycle through the jump images while jumping.
+    * While jumping, the skier able to jump over the Rocks.
   * Are there any known bugs?
+    * The space between the skier and the obstacles is not enough when the game starts.
   * Did you do any bonus items?
+    No
   * Tell us how to run it, either locally or through a cloud provider.
+
+    Run locally by running:
+
+    ```
+    npm install
+    npm run dev
+    ```
   
 * **Be original:**
   

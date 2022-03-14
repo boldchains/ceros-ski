@@ -38,7 +38,7 @@ export abstract class Entity {
     }
 
     /**
-     * Return the skier's position
+     * Return the entity position
      */
     getPosition(): Position {
         return this.position;

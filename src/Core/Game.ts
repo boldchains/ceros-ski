@@ -101,7 +101,7 @@ export class Game {
 
         this.obstacleManager.placeNewObstacle(this.gameWindow, previousGameWindow);
 
-        this.skier.update();
+        this.skier.update(this.gameTime);
         this.rhino.update(this.gameTime, this.skier);
     }
 
@@ -133,6 +133,7 @@ export class Game {
      * Handle keypresses and delegate to any game objects that might have key handling of their own.
      */
     handleKeyDown(event: KeyboardEvent) {
+        console.log(event.key)
         let handled: boolean = this.skier.handleInput(event.key);
 
         if(handled) {

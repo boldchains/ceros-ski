@@ -15,7 +15,8 @@ const OBSTACLE_TYPES: IMAGE_NAMES[] = [
     IMAGE_NAMES.TREE,
     IMAGE_NAMES.TREE_CLUSTER,
     IMAGE_NAMES.ROCK1,
-    IMAGE_NAMES.ROCK2
+    IMAGE_NAMES.ROCK2,
+    IMAGE_NAMES.RAMP,
 ];
 
 export class Obstacle extends Entity {
@@ -32,6 +33,20 @@ export class Obstacle extends Entity {
 
         const typeIdx = randomInt(0, OBSTACLE_TYPES.length - 1);
         this.imageName = OBSTACLE_TYPES[typeIdx];
+    }
+
+    /**
+     * Is the obstacle possible to jump
+     */
+    isJumpable() {
+        return (
+            this.imageName === IMAGE_NAMES.ROCK1 ||
+            this.imageName === IMAGE_NAMES.ROCK2
+        );
+    }
+
+    isJumpRamp() {
+        return this.imageName === IMAGE_NAMES.RAMP;
     }
 
     /**
